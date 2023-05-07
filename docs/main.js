@@ -109,8 +109,12 @@ function buildPluginStat(item) {
 			}
 
 			// Set urls if a href tags
-			if (this.tagName == "A") {
-				$(this).attr("href", itemVal.replace(/\/archive\/(.*)/, ''));
+		  if (this.tagName == "A") {
+                if (itemVal.startsWith('http')) {
+                  $(this).attr("href", itemVal.replace(/\/archive\/(.*)/, ''));
+                } else {
+                  $(this).attr("href", itemVal.toLowerCase());
+                }
 			} else {
 				$(this).html(itemVal);
 			}
