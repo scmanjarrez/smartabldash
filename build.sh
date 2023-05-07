@@ -139,26 +139,27 @@ echo "Found ${#plugins[@]} plugin(s) in $configFile"
 
 # convert config to object to make it parsable
 configMap=$(jq -c '[ .[] | {key: (.), value: null} ] | from_entries' config.json)
-
+configMap2=${configMap,,}
 # build generic totals
-jq -c --argjson config "$configMap" --arg now "$now" --slurpfile result "$localTotals" '
+jq -c --argjson config "$configMap" --argjson config2 "$configMap2" --arg now "$now" --slurpfile result "$localTotals" '
 	[
-	.plugins | to_entries | .[] | select(.key | in($config)) |
+	.plugins | to_entries | .[] | select(.key | in($config) or in($config2)) |
 		{
-			(.key): {
+			(.key | ascii_downcase): {
 				($now): (.value.instances)
 			}
 	}
 	] | reduce .[] as $add ($result[0]; . * $add)' tmp_OPstats.json > tmp_merge.json
+
 # Copy to final output
 mv tmp_merge.json $localTotals
 
 # build details part 1
-jq -c --argjson config "$configMap" --arg now "$now" --slurpfile result "$localDetails" '
+jq -c --argjson config "$configMap" --argjson config2 "$configMap2" --arg now "$now" --slurpfile result "$localDetails" '
 	[
-		.[] | select(.id | in($config)) |
+		.[] | select(.id | in($config) or in($config2)) |
 		{
-			(.id): {
+			(.id | ascii_downcase): {
 				($now): {
 					"installbase": (.stats),
 					"ghissues": (.github.issues),
@@ -171,11 +172,11 @@ jq -c --argjson config "$configMap" --arg now "$now" --slurpfile result "$localD
 mv tmp_merge.json $localDetails
 
 # Build version stats
-jq -c --argjson config "$configMap" --arg now "$now" --slurpfile result "$localDetails" '
+jq -c --argjson config "$configMap" --argjson config2 "$configMap2" --arg now "$now" --slurpfile result "$localDetails" '
 	[
-	.plugins | to_entries | .[] | select(.key | in($config)) |
+	.plugins | to_entries | .[] | select(.key | in($config) or in($config2)) |
 		{
-			(.key): {
+			(.key | ascii_downcase): {
 				($now): {
 					"versions" : (.value.versions | map_values(.instances))
 				}
